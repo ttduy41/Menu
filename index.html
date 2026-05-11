@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHADOW - SHOP MENU UY TÍN</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --bg: #0b0e1a; --card: #161b30; --accent: #8a2be2; --green: #22c55e; --text: #ffffff; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; }
+
+        /* Giao diện chuẩn Video */
+        .navbar { display: flex; align-items: center; padding: 15px; background: var(--bg); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #232736; }
+        .sidebar { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background: var(--card); transition: 0.3s; z-index: 200; padding: 20px; }
+        .sidebar.active { left: 0; }
+        .side-item { padding: 15px; display: flex; align-items: center; border-radius: 12px; margin-bottom: 5px; cursor: pointer; color: #94a3b8; }
+        .side-item.active { background: #252a3d; color: white; }
+
+        /* Bảng Chiết Khấu Thẻ Cào (Theo Video gachthefast.com) */
+        .discount-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; background: #1e2235; border-radius: 10px; overflow: hidden; }
+        .discount-table td { border: 1px solid #2d334a; padding: 8px; text-align: center; }
+
+        /* Card mặt hàng */
+        .card { background: var(--card); margin: 15px; border-radius: 20px; border: 1px solid #2d334a; overflow: hidden; position: relative; }
+        .card img { width: 100%; height: 200px; object-fit: cover; }
+        .stock-info { position: absolute; top: 10px; right: 10px; background: var(--green); padding: 5px 10px; border-radius: 20px; font-size: 10px; font-weight: bold; }
+        
+        /* Modal chọn thời gian */
+        .time-box { display: flex; gap: 8px; margin: 15px 0; }
+        .time-btn { flex: 1; padding: 8px; border: 1px solid var(--accent); border-radius: 8px; font-size: 11px; text-align: center; cursor: pointer; }
+        .time-btn.active { background: var(--accent); }
+
+        /* Floating Buttons */
+        .fab { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 99; }
+        .btn-fab { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; }
+    </style>
+</head>
+<body>
+
+    <div id="auth-screen" style="position:fixed; inset:0; background:var(--bg); z-index:1000; display:flex; align-items:center; justify-content:center; padding:20px;">
+        <div style="background:var(--card); width:100%; max-width:350px; padding:30px; border-radius:25px; border:1px solid #2d334a;">
+            <h2 style="text-align:center; color:var(--accent);">SHADOW LOGIN</h2>
+            <input type="email" id="u-mail" placeholder="Email (dùng để lấy lại pass)" style="width:100%; background:#0b0e1a; border:1px solid #2d334a; color:white; padding:12px; border-radius:10px; margin-bottom:10px;">
+            <input type="password" id="u-pass" placeholder="Mật khẩu" style="width:100%; background:#0b0e1a; border:1px solid #2d334a; color:white; padding:12px; border-radius:10px; margin-bottom:15px;">
+            <button onclick="handleLogin()" style="width:100%; background:var(--accent); color:white; border:none; padding:12px; border-radius:10px; font-weight:bold;">ĐĂNG NHẬP / ĐĂNG KÝ</button>
+            <div style="margin-top:15px; text-align:center;">
+                <button onclick="alert('Google Auth cần kết nối Firebase!')" style="width:100%; background:white; color:black; border:none; padding:10px; border-radius:10px; font-weight:bold;"><i class="fab fa-google"></i> Google Login</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-app" style="display:none;">
+        <div class="navbar">
+            <i class="fas fa-bars" onclick="toggleSidebar()" style="font-size:24px; margin-right:15px; cursor:pointer;"></i>
+            <div style="font-weight:bold; color:var(--accent);">SHADOW SHOP</div>
+        </div>
+
+        <div id="sidebar" class="sidebar">
+            <h2 style="color:var(--accent); text-align:center;">MENU</h2>
+            <div class="side-item active"><i class="fas fa-home"></i> Trang Chủ</div>
+            <div class="side-item" onclick="alert('Nạp thẻ cần Admin duyệt')"><i class="fas fa-wallet"></i> Nạp Thẻ</div>
+            <div id="admin-menu" class="side-item" style="display:none;" onclick="openAdmin()"><i class="fas fa-user-shield"></i> Admin Panel</div>
+            <div class="side-item" style="margin-top:50px; color:#ef4444;" onclick="location.reload()"><i class="fas fa-power-off"></i> Đăng xuất</div>
+        </div>
+
+        <div class="card" style="padding:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <div style="font-size:12px; color:#94a3b8;">Số dư tài khoản:</div>
+                    <div style="font-size:22px; font-weight:bold; color:var(--green);"><span id="u-money">0</span>đ</div>
+                </div>
+                <button onclick="alert('Chức năng nạp đang được Admin duyệt')" style="background:var(--accent); border:none; color:white; padding:10px 20px; border-radius:10px;">NẠP TIỀN</button>
+            </div>
+            
+            <h4 style="margin:20px 0 10px 0;">BẢNG CHIẾT KHẤU THẺ CÀO</h4>
+            <table class="discount-table">
+                <tr style="background:#252a3d;"><td>Nhà mạng</td><td>10k-50k</td><td>100k-500k</td></tr>
+                <tr><td>Viettel</td><td>-13%</td><td>-15%</td></tr>
+                <tr><td>Vinaphone</td><td>-17%</td><td>-18%</td></tr>
+                <tr><td>Garena</td><td>-12%</td><td>-13%</td></tr>
+            </table>
+        </div>
+
+        <div id="product-list"></div>
+    </div>
+
+    <div class="fab">
+        <div class="btn-fab" style="background:#2563eb;" onclick="window.open('https://zalo.me/84364684151')"><i class="fas fa-comment-dots"></i></div>
+        <div class="btn-fab" style="background:#229ED9;" onclick="window.open('https://t.me/+ktWnTQrZAKthYmZl')"><i class="fab fa-telegram-plane"></i></div>
+    </div>
+
+    <script>
+        const ADMIN_ID = "shadow+999";
+        const ADMIN_PW = "HV0308hv";
+        const DESC = "menu antiband updete thường xuyên lưu ý cách chơi khi muốn chơi thì log acc clone trước chơi 1 trận nếu không band thì có thể log acc 9 khi off nhớ đang xuất acc game";
+
+        let db = JSON.parse(localStorage.getItem('shadow_sys')) || {
+            users: {}, 
+            stock: { lv5: ["Key_ACC_1"], drip: ["Key_DRIP_1"], zy: ["Key_ZY_1"] }
+        };
+
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
+
+        function handleLogin() {
+            const m = document.getElementById('u-mail').value;
+            const p = document.getElementById('u-pass').value;
+            if(!m || !p) return alert("Vui lòng nhập đủ!");
+
+            if(m === ADMIN_ID && p === ADMIN_PW) {
+                document.getElementById('admin-menu').style.display = 'flex';
+            } else if (!db.users[m]) {
+                db.users[m] = { pass: p, money: 0 };
+            } else if (db.users[m].pass !== p) return alert("Sai mật khẩu!");
+
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('main-app').style.display = 'block';
+            renderProducts();
+        }
+
+        function renderProducts() {
+            const items = [
+                { id: 'lv5', name: 'Acc Lv5 Google', price: 2500, img: '1000182079.jpg', desc: 'Đăng nhập Google, sẵn combo kĩ năng nhân vật...' },
+                { id: 'drip', name: 'Drip Silent', price: 60000, img: '1000182074.jpg', desc: DESC, hasOptions: true },
+                { id: 'zy', name: 'Zygame', price: 30000, img: '1000182075.jpg', desc: DESC, hasOptions: true }
+            ];
+
+            let html = '';
+            items.forEach(i => {
+                const count = db.stock[i.id].length;
+                html += `
+                <div class="card">
+                    <div class="stock-info">CÒN: ${count}</div>
+                    <img src="${i.img}">
+                    <div style="padding:15px;">
+                        <div style="font-weight:bold; font-size:18px;">${i.name}</div>
+                        <div style="color:var(--green); font-size:20px; font-weight:bold; margin:5px 0;">${i.price.toLocaleString()}đ</div>
+                        ${i.hasOptions ? `
+                            <div class="time-box">
+                                <div class="time-btn active">1 Day</div>
+                                <div class="time-btn">7 Day</div>
+                                <div class="time-btn">30 Day</div>
+                            </div>
+                        ` : ''}
+                        <p style="font-size:11px; color:#94a3b8;">${i.desc}</p>
+                        <button onclick="buy('${i.id}')" style="width:100%; background:var(--accent); border:none; color:white; padding:12px; border-radius:12px; font-weight:bold;">MUA NGAY</button>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('product-list').innerHTML = html;
+        }
+
+        function buy(id) {
+            if(db.stock[id].length === 0) return alert("Sản phẩm tạm hết hàng!");
+            // Logic mua hàng: Trừ tiền -> Lấy key -> Xóa key khỏi mảng stock[id]
+            const key = db.stock[id].shift(); 
+            localStorage.setItem('shadow_sys', JSON.stringify(db));
+            renderProducts();
+            alert("MUA THÀNH CÔNG! Key của bạn: " + key + "\n(Lưu ý: Key chỉ hiện 1 lần này)");
+        }
+    </script>
+</body>
+</html>
